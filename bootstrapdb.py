@@ -1,50 +1,72 @@
-from random import choice, randint
+import datetime
+import random
+
+from faker import Faker
 
 from model import Base, Employee, Gender, Department, Salary
 from session import session
-from faker import Faker
 
 
-def create_employees(n=100):
+def create_employees(session, n=100):
     faker = Faker()
     genders = [Gender.M, Gender.F]
-    employee = [
+    employees = [
         Employee(
             first_name=faker.first_name(),
             last_name=faker.last_name(),
-            birth_date=faker.date_of_birth(minimum_age=18, maximum_age=65),
-            hire_date=faker.date_of_birth(minimum_age=0, maximum_age=10),
-            gender=faker.random_element(elements=genders)
+            birth_date=faker.date_of_birth(),
+            hire_date=faker.date_of_birth(),
+            gender=faker.random_element(elements=genders),
         )
         for _ in range(n)
     ]
-    session.add_all(employee)
+    session.add_all(employees)
     session.commit()
 
 
-def create_departments():
-    departments = []
+def create_departments(session):
+    departments = [
+        "Human Resources",
+        "Finance",
+        "Marketing",
+        "Sales",
+        "Information Technology",
+        "Operations",
+        "Customer Service",
+        "Legal",
+        "Research and Development",
+        "Procurement",
+        "Corporate Strategy",
+        "Corporate Communications",
+        "Quality Assurance",
+        "Risk Management",
+        "Training and Development",
+    ]
+    session.add_all([
+        Department(name=name)
+        for name in departments
+    ])
+    session.commit()
 
 
-def assign_employees_to_departments():
-    employees = session.query(Employee).all()
+def assign_employees_to_departments(session):
+    employees = session.query(Employee)
     departments = session.query(Department).all()
     for employee in employees:
-        employee.department.append(
-            choice(departments)
+        employee.departments.append(
+            random.choice(departments)
         )
+    session.commit()
 
 
-def salaries():
-    faker = Faker()
-    employees = session.query(Employee).all()
+def create_salaries(session):
+    employees = session.query(Employee)
     for employee in employees:
-        salary = randint(30_000, 150_000)
+        salary = random.randint(30_000, 150_000)
         employee.salaries.append(
             Salary(
                 amount=salary,
-                date=faker.date_time(),
-                employee_id=employee
+                date=datetime.datetime.now()
             )
         )
     session.commit()
@@ -53,15 +75,18 @@ def salaries():
 def main():
     Base.metadata.create_all(session.bind)
 
-    # print('Generating employees ...')
-    # create_employees()
-    # print('Generating departments ...')
-    # create_departments()
-    # print('Assigning employees ...')
-    # assign_employees_to_departments()
-    print('Creating salaries ...')
-    salaries()
+    print("Generating employees...")
+    create_employees(session, 300)
+
+    print("Generating departments...")
+    create_departments(session)
+
+    print("Assigning employees to departments...")
+    assign_employees_to_departments(session)
+
+    print("Generating salaries...")
+    create_salaries(session)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
